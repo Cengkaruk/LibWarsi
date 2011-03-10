@@ -83,13 +83,13 @@ class OnPackage(object):
     def show_info(self, pkg):
         """Show Information about Package
 
-        Return package information dict. Available keys is 'Name', 'Version', 'Arch', 'Desc', and 'LongDesc'           
+        Return package information dict.     
 
         Arguments:
         pkg - A String, name of package
 
         Returns:
-        info - A Dict, with keys is 'Name', 'Version', 'Arch', 'Desc', and 'LongDesc' 
+        info - A Dict.
 
         """
         dir = os.path.splitext(pkg)[0]
@@ -102,31 +102,10 @@ class OnPackage(object):
             raise ex.WarsiInfoError("Reading package information failed")
 
         content = info.read()
-        long_description = []
-        info = {}
-        lines = content.split("\n")
-        for line in lines:
-            if line.startswith("Package:"):
-                value = line.split(" ")
-                info['Name'] = value[1]
-            elif line.startswith("Version:"):
-                value = line.split(" ")
-                info['Version'] = value[1]
-            elif line.startswith("Architecture"):
-                value = line.split(" ")
-                info['Arch'] = value[1]
-            elif line.startswith("Description:"):
-                value = line.split("Description:")
-                info['Desc'] = value[1]
-            #TODO: after startswith "Description:" check whitespace
-            elif line.startswith(" "):
-                long_description.append(line)
-                desc = "\n"
-                longdsc = desc.join(long_description)
-                info['LongDesc'] = longdsc
+        tags = apt_pkg.TagSection(content)
 
         tar.close()
-        return info
+        return tags
 
     def check_sums(self, pkg, extractdata):
         """Check MD5 checksums of Package
