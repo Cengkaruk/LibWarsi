@@ -32,7 +32,8 @@ class OnPackage(object):
     """    
 
     def __init__(self):
-        self.cache = apt.Cache(apt.progress.text.OpProgress())
+#        self.cache = apt.Cache(apt.progress.text.OpProgress())
+        self.cache = apt.Cache()
         apt_pkg.init()
 
     def extract(self, pkg):
@@ -78,7 +79,8 @@ class OnPackage(object):
         """
         ext = os.path.splitext(pkg)[1]
         return ext == '.on'
-        #TODO : any ideas?
+        #TODO: add information attribute to package
+        
 
     def show_info(self, pkg):
         """Show Information about Package
@@ -169,17 +171,17 @@ class OnPackage(object):
         version = split[1]
 
         main_pkg = self.cache[name]
-        sysversion = main_pkg.versions[0].version
+        sysversion = main_pkg.candidate.version
 
         version_compare = apt_pkg.version_compare(sysversion, version)
         check_version = {}
 
         if version_compare < 0:
-            check_version[dir] = "Newer"
+            check_version[dir] = ">"
         elif version_compare > 0:
-            check_version[dir] = "Older"
+            check_version[dir] = "<"
         else:
-            check_version[dir] = "Same"
+            check_version[dir] = "="
 
         return check_version		
 
@@ -203,7 +205,7 @@ class OnPackage(object):
         main_pkg = self.cache[name]
         check_version_all = []
 
-        for dep in main_pkg.candidateDependencies:
+        for dep in main_pkg.candidate.dependencies:
             for deps in dep.or_dependencies:
                 debs = os.path.join(extractdata, "data")
 
@@ -236,11 +238,8 @@ class OnPackage(object):
 
         install_pkg = []
         main_pkg = self.cache[name]
-        if not main_pkg.is_installed:
-            main_pkg.mark_install
-            install_pkg.append(main_pkg)
       
-        for deps_cache in main_pkg.candidateDependencies:
+        for deps_cache in main_pkg.candidate.dependencies:
             for dep_cache in deps_cache.or_dependencies:
                 debs = os.path.join(extractdata, "data")
 
@@ -256,6 +255,10 @@ class OnPackage(object):
                             dep_pkg.mark_install()
                             self.copy_debs(debfile)
                             install_pkg.append(dep_pkg)
+
+        if not main_pkg.is_installed:
+            main_pkg.mark_install
+            install_pkg.append(main_pkg)
 
         return install_pkg
 
@@ -283,7 +286,7 @@ class OnPackage(object):
         debs = self.cache.get_changes()
         for deb in debs:        
             if self.cache.has_key(deb.name):
-                deb.commit(apt.progress.TextFetchProgress(), apt.progress.InstallProgress())
+                deb.commit(apt.progress.base.AcquireProgress.fetch, apt.progress.base.InstallProgress)
 
     def commit_install_gui(self):
         """Install Package
